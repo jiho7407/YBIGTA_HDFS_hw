@@ -148,7 +148,7 @@ main() {
   fi
 
   local student_conf_sha256 git_commit
-  student_conf_sha256="$(find "${SCRIPT_DIR}/student/conf" -type f | sort | xargs sha256sum 2>/dev/null | sha256sum | awk '{print $1}')"
+  student_conf_sha256="$(student_conf_hash "${SCRIPT_DIR}/student/conf")"
   git_commit="$(git -C "${SCRIPT_DIR}" rev-parse --short HEAD 2>/dev/null || printf 'unknown')"
 
   {

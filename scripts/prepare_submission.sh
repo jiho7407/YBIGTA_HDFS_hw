@@ -32,9 +32,12 @@ if [[ "${NAME}" == *"/"* || "${NAME}" == "." || "${NAME}" == ".." || -z "${NAME}
 fi
 
 RESULT_FILE="${ROOT_DIR}/results/result.json"
+STUDENT_CONF_DIR="${ROOT_DIR}/student/conf"
 DEST_DIR="${ROOT_DIR}/submissions/${NAME}"
-DEST_FILE="${DEST_DIR}/result.json"
-REL_DEST="submissions/${NAME}/result.json"
+DEST_RESULT="${DEST_DIR}/result.json"
+DEST_CONF_DIR="${DEST_DIR}/conf"
+REL_RESULT="submissions/${NAME}/result.json"
+REL_CONF="submissions/${NAME}/conf"
 
 if [[ ! -f "${RESULT_FILE}" ]]; then
   echo "Missing ${RESULT_FILE}" >&2
@@ -42,22 +45,33 @@ if [[ ! -f "${RESULT_FILE}" ]]; then
   exit 1
 fi
 
-python3 "${ROOT_DIR}/scripts/validate_submission_result.py" "${RESULT_FILE}"
+if [[ ! -d "${STUDENT_CONF_DIR}" ]]; then
+  echo "Missing ${STUDENT_CONF_DIR}" >&2
+  exit 1
+fi
 
 mkdir -p "${DEST_DIR}"
-cp "${RESULT_FILE}" "${DEST_FILE}"
+cp "${RESULT_FILE}" "${DEST_RESULT}"
 
-git -C "${ROOT_DIR}" add -- "${REL_DEST}"
+# Copy student/conf into submissions/<name>/conf so the grader can verify
+# that result.json's student_conf_sha256 matches what was actually used.
+rm -rf "${DEST_CONF_DIR}"
+mkdir -p "${DEST_CONF_DIR}"
+cp -R "${STUDENT_CONF_DIR}/." "${DEST_CONF_DIR}/"
+
+python3 "${ROOT_DIR}/scripts/validate_submission_result.py" "${NAME}"
+
+git -C "${ROOT_DIR}" add -- "${REL_RESULT}" "${REL_CONF}"
 
 echo
-echo "Prepared ${REL_DEST}"
+echo "Prepared ${REL_RESULT} and ${REL_CONF}/"
 echo
 echo "Currently staged files:"
 git -C "${ROOT_DIR}" diff --cached --name-only
 
 UNEXPECTED_STAGED="$(
   git -C "${ROOT_DIR}" diff --cached --name-only \
-    | grep -v -E "^submissions/[^/]+/result\\.json$" || true
+    | grep -v -E "^submissions/[^/]+/(result\\.json|conf/[^/]+)$" || true
 )"
 
 if [[ -n "${UNEXPECTED_STAGED}" ]]; then
