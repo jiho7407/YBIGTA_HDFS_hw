@@ -140,12 +140,26 @@ hdfs-ha-hw/
 
 ## 제출 방법
 
-`submissions/<이름>/` 디렉터리를 만들고 `result.json`을 넣은 뒤 PR을 올리세요.
+검증을 마친 뒤 제출 파일을 준비합니다.
+
+```bash
+./scripts/prepare_submission.sh <이름>
+git commit -m "submit: <이름>"
+git push
+```
+
+스크립트는 `results/result.json`을 `submissions/<이름>/result.json`으로 복사하고,
+그 제출 파일만 `git add` 합니다.
+
+수동으로 제출한다면 `submissions/<이름>/` 디렉터리를 만들고 `result.json`만 넣은 뒤 PR을 올리세요.
 
 ```
 submissions/
 └── 이름/
     └── result.json    # run_all.sh 실행 후 results/result.json 복사
 ```
+
+PR에는 `submissions/<이름>/result.json`만 포함되어야 합니다. `student/`, `results/`,
+스크립트, 설정 파일이 같이 올라오면 GitHub Actions가 실패합니다.
 
 PR을 올리면 GitHub Actions가 자동으로 검증합니다. CI를 통과해야 merge됩니다. merge되면 리더보드가 자동으로 업데이트됩니다.

@@ -19,11 +19,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 변경된 제출자 폴더 찾기
+      - name: 제출 변경 범위 확인
         id: find-name
         run: |
-          NAME=$(git diff --name-only "origin/${{ github.base_ref }}" HEAD \
-            | grep '^submissions/' \
+          mapfile -t CHANGED_FILES < <(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+
+          if [[ "${#CHANGED_FILES[@]}" -eq 0 ]]; then
+            echo "변경된 파일이 없습니다."
+            exit 1
+          fi
+
+          INVALID_FILES=()
+          for path in "${CHANGED_FILES[@]}"; do
+            if [[ ! "${path}" =~ ^submissions/[^/]+/result\.json$ ]]; then
+              INVALID_FILES+=("${path}")
+            fi
+          done
+
+          if [[ "${#INVALID_FILES[@]}" -gt 0 ]]; then
+            echo "제출 PR에는 submissions/<이름>/result.json 하나만 포함해야 합니다."
+            printf '허용되지 않는 파일: %s\n' "${INVALID_FILES[@]}"
+            exit 1
+          fi
+
+          NAME=$(printf '%s\n' "${CHANGED_FILES[@]}" \
             | awk -F/ '{print $2}' \
             | sort -u)
 
