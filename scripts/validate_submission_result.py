@@ -154,8 +154,33 @@ def main() -> None:
             f"  sum(elapsed_ms for passed scenarios): {elapsed_sum}"
         )
 
+    # C2: passed scenarios must have physically plausible timings.
+    # Real runs (see leaderboard) bottom out around 2.4s recovery and 24s
+    # elapsed. 200ms recovery and 1000ms elapsed are safe lower bounds —
+    # well below honest runs but above any 1ms / 9ms forgery.
+    MIN_RECOVERY_MS = 200
+    MIN_ELAPSED_MS = 1000
+
+    for sc in scenarios:
+        if not isinstance(sc, dict) or sc.get("passed") is not True:
+            continue
+        sid = sc.get("id", "<unknown>")
+        elapsed = as_int_field(sc, "elapsed_ms")
+        recovery = as_int_field(sc, "recovery_time_ms")
+        if elapsed < MIN_ELAPSED_MS:
+            fail(
+                f"scenario {sid} elapsed_ms={elapsed} below {MIN_ELAPSED_MS}ms floor "
+                "— implausible for a real run"
+            )
+        if recovery < MIN_RECOVERY_MS:
+            fail(
+                f"scenario {sid} recovery_time_ms={recovery} below {MIN_RECOVERY_MS}ms floor "
+                "— implausible for a real run"
+            )
+
     print(f"student_conf_sha256: {expected_hash} (matches submissions/{name}/conf)")
     print(f"penalty_ms consistent with scenario elapsed times ({elapsed_sum})")
+    print(f"all passed scenarios meet timing floors (recovery≥{MIN_RECOVERY_MS}ms, elapsed≥{MIN_ELAPSED_MS}ms)")
     print("submission result is valid")
 
 
