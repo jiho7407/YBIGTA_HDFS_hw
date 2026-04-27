@@ -9,3 +9,4 @@ export HDFS_NAMENODE_OPTS="-Dhadoop.security.logger=INFO,RFAS ${HDFS_NAMENODE_OP
 export HDFS_DATANODE_OPTS="-Dhadoop.security.logger=ERROR,RFAS ${HDFS_DATANODE_OPTS:-}"
 export HDFS_JOURNALNODE_OPTS="-Dhadoop.security.logger=INFO,RFAS ${HDFS_JOURNALNODE_OPTS:-}"
 export HDFS_ZKFC_OPTS="-Dhadoop.security.logger=INFO,RFAS ${HDFS_ZKFC_OPTS:-}"
+export HADOOP_CLIENT_OPTS="${HADOOP_CLIENT_OPTS:-} -Dhadoop.root.logger=ERROR,console"
