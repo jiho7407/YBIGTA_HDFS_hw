@@ -51,7 +51,7 @@ results/result.json
 - Docker Desktop 또는 Docker Engine + Docker Compose v2
 - 최소 8GB RAM, Docker에 4GB 이상 할당
 - 디스크 여유 공간 6GB 이상
-- 빌드 시 인터넷 연결 필요 (Hadoop 바이너리를 자동으로 다운로드합니다)
+- 빌드 시 인터넷 연결 필요 (GHCR에서 베이스 이미지를 pull합니다)
 
 ---
 
@@ -92,7 +92,8 @@ results/result.json
 ```
 hdfs-ha-hw/
 ├── docker-compose.yml                 # 기본 HDFS HA 클러스터 구성
-├── Dockerfile                         # Hadoop 이미지 빌드
+├── Dockerfile                         # Hadoop 이미지 (GHCR 베이스 이미지 사용)
+├── Dockerfile.base                    # Hadoop 설치 레이어 (GHCR 배포용)
 ├── run_all.sh                         # 전체 검증 실행
 ├── scripts/                           # 클러스터 제어 및 데이터 주입 스크립트
 ├── scenarios/                         # 장애 검증 시나리오
