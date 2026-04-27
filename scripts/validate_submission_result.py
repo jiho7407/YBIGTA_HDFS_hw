@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -39,12 +40,43 @@ def require_int(mapping: dict[str, Any], key: str) -> int:
     return value
 
 
+def hash_conf_dir(conf_dir: Path) -> str:
+    """Path-independent hash of a conf directory.
+
+    Mirrors scripts/lib/common.sh:student_conf_hash so that the same conf
+    yields the same digest regardless of whether it lives in student/conf
+    or submissions/<name>/conf.
+    """
+    if not conf_dir.is_dir():
+        fail(f"conf directory not found: {conf_dir}")
+
+    files = sorted(
+        p
+        for p in conf_dir.rglob("*")
+        if p.is_file() and not p.name.startswith(".")
+    )
+    if not files:
+        fail(f"conf directory is empty: {conf_dir}")
+
+    lines = []
+    for path in files:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        lines.append(f"{path.name}:{digest}\n")
+    blob = "".join(lines).encode()
+    return hashlib.sha256(blob).hexdigest()
+
+
 def main() -> None:
     if len(sys.argv) != 2:
-        fail("usage: validate_submission_result.py <submissions/name/result.json>")
+        fail("usage: validate_submission_result.py <name>")
 
-    result_path = Path(sys.argv[1])
+    name = sys.argv[1]
     minimum_passed = int(os.environ.get("MIN_SCENARIOS_PASSED", "6"))
+
+    repo_root = Path(__file__).resolve().parent.parent
+    submission_dir = repo_root / "submissions" / name
+    result_path = submission_dir / "result.json"
+    conf_dir = submission_dir / "conf"
 
     if not result_path.is_file():
         fail(f"{result_path} does not exist")
@@ -85,6 +117,20 @@ def main() -> None:
     if passed < minimum_passed:
         fail(f"pass threshold not met: {passed}/{total} (minimum {minimum_passed})")
 
+    expected_hash = data["student_conf_sha256"]
+    if not isinstance(expected_hash, str) or len(expected_hash) != 64:
+        fail("student_conf_sha256 must be a 64-character hex string")
+
+    actual_hash = hash_conf_dir(conf_dir)
+    if expected_hash != actual_hash:
+        fail(
+            "student_conf_sha256 mismatch — result.json was not produced from "
+            f"submissions/{name}/conf.\n"
+            f"  result.json: {expected_hash}\n"
+            f"  conf dir:    {actual_hash}"
+        )
+
+    print(f"student_conf_sha256: {expected_hash} (matches submissions/{name}/conf)")
     print("submission result is valid")
 
 
