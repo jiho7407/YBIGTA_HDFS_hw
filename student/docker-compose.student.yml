@@ -1,0 +1,50 @@
+# Student editable Docker Compose overlay.
+#
+# The grader always loads this file after ../docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f student/docker-compose.student.yml ...
+#
+# You may tune service resources, environment variables, and additional mounts here.
+# Keep the canonical service names stable:
+#
+#   nn1, nn2
+#   zk1, zk2, zk3
+#   jn1, jn2, jn3
+#   dn1, dn2, dn3
+#
+# Do not remove dn1, dn2, dn3. Scenarios assume three DataNodes exist.
+# Do not change the hdfs-ha network name.
+
+services:
+  nn1:
+    environment:
+      HADOOP_HEAPSIZE_MAX: ${HADOOP_HEAPSIZE_MAX:-384m}
+
+  nn2:
+    environment:
+      HADOOP_HEAPSIZE_MAX: ${HADOOP_HEAPSIZE_MAX:-384m}
+
+  jn1:
+    environment:
+      HADOOP_HEAPSIZE_MAX: ${HADOOP_HEAPSIZE_MAX:-384m}
+
+  jn2:
+    environment:
+      HADOOP_HEAPSIZE_MAX: ${HADOOP_HEAPSIZE_MAX:-384m}
+
+  jn3:
+    environment:
+      HADOOP_HEAPSIZE_MAX: ${HADOOP_HEAPSIZE_MAX:-384m}
+
+  dn1:
+    environment:
+      HADOOP_HEAPSIZE_MAX: ${HADOOP_HEAPSIZE_MAX:-384m}
+
+  dn2:
+    environment:
+      HADOOP_HEAPSIZE_MAX: ${HADOOP_HEAPSIZE_MAX:-384m}
+
+  dn3:
+    environment:
+      HADOOP_HEAPSIZE_MAX: ${HADOOP_HEAPSIZE_MAX:-384m}
+

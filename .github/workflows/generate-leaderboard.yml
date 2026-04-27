@@ -1,0 +1,259 @@
+name: Generate Leaderboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "submissions/**"
+
+permissions:
+  contents: write
+
+jobs:
+  leaderboard:
+    name: 리더보드 생성
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 리더보드 HTML 생성
+        run: |
+          python3 - <<'PYEOF'
+          import html, json, glob, os
+          from datetime import datetime, timezone, timedelta
+
+          KST = timezone(timedelta(hours=9))
+          now = datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")
+
+          SCENARIO_IDS = [
+              "01-clean-kill",
+              "02-hard-kill",
+              "03-standby-failure",
+              "04-journalnode-failure",
+              "05-zookeeper-failure",
+              "06-active-zk-disconnect",
+              "07-datanode-failure",
+              "08-large-write-failover",
+              "09-chaos-test",
+          ]
+
+          SCENARIO_LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
+          entries = []
+          for path in sorted(glob.glob("submissions/*/result.json")):
+              name = path.split("/")[1]
+              try:
+                  with open(path) as f:
+                      d = json.load(f)
+              except Exception:
+                  continue
+
+              s = d.get("summary", {})
+              scenario_map = {
+                  sc.get("id"): sc
+                  for sc in d.get("scenarios", [])
+                  if isinstance(sc, dict) and sc.get("id")
+              }
+
+              per_scenario = []
+              for sid in SCENARIO_IDS:
+                  sc = scenario_map.get(sid)
+                  if sc is None:
+                      per_scenario.append({"status": "none"})
+                  elif sc.get("passed"):
+                      rt = (
+                          sc.get("elapsed_ms")
+                          or sc.get("scenario_elapsed_ms")
+                          or sc.get("duration_ms")
+                          or sc.get("recovery_time_ms")
+                          or sc.get("avg_recovery_time_ms")
+                          or 0
+                      )
+                      per_scenario.append({"status": "pass", "ms": rt})
+                  else:
+                      rt = sc.get("elapsed_ms") or sc.get("scenario_elapsed_ms") or sc.get("duration_ms") or 0
+                      per_scenario.append({"status": "fail", "ms": rt})
+
+              entries.append({
+                  "name":    name,
+                  "passed":  s.get("scenarios_passed", 0),
+                  "penalty": s.get("penalty_ms", 0),
+                  "runtime":  s.get("total_runtime_ms", 0),
+                  "fp":      s.get("false_positive_failover_count", 0),
+                  "ts":      d.get("timestamp", "")[:10],
+                  "scenarios": per_scenario,
+              })
+
+          entries.sort(key=lambda x: (-x["passed"], x["penalty"]))
+
+          def fmt_ms(ms):
+              if ms == 0:
+                  return "-"
+              if ms < 60000:
+                  return f"{ms/1000:.1f}s"
+              minutes = ms // 60000
+              seconds = (ms % 60000) // 1000
+              return f"{minutes}:{seconds:02d}"
+
+          def fmt_penalty(ms):
+              if ms == 0:
+                  return "-"
+              if ms < 1000:
+                  return f"{ms}ms"
+              if ms < 60000:
+                  return f"{ms/1000:.1f}s"
+              minutes = ms // 60000
+              seconds = (ms % 60000) // 1000
+              return f"{minutes}:{seconds:02d}"
+
+          header_cells = ""
+          for label in SCENARIO_LABELS:
+              header_cells += f'<th class="sc-head">{label}</th>'
+
+          rows = ""
+          for i, e in enumerate(entries, 1):
+              sc_cells = ""
+              for sc in e["scenarios"]:
+                  if sc["status"] == "pass":
+                      sc_cells += f'<td class="sc pass"><span class="verdict">AC</span><span class="ms">{fmt_ms(sc["ms"])}</span></td>'
+                  elif sc["status"] == "fail":
+                      sc_cells += f'<td class="sc fail"><span class="verdict">WA</span><span class="ms">{fmt_ms(sc["ms"])}</span></td>'
+                  else:
+                      sc_cells += '<td class="sc none"><span class="dash">-</span></td>'
+
+              medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, "")
+              safe_name = html.escape(e["name"])
+              rows += f"""
+              <tr class="{'top3' if i <= 3 else ''}">
+                <td class="rank">{i}</td>
+                <td class="pname">{medal} {safe_name}</td>
+                {sc_cells}
+                <td class="total">{e['passed']}<span class="of">/9</span></td>
+                <td class="penalty">{fmt_penalty(e['penalty'])}</td>
+              </tr>"""
+
+          if not entries:
+              colspan = 2 + len(SCENARIO_IDS) + 2
+              rows = f'<tr><td colspan="{colspan}" class="empty">아직 제출이 없습니다.</td></tr>'
+
+          html = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HDFS HA 과제 리더보드</title>
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      background: #0b1020; color: #e6edf3;
+      padding: 32px 24px;
+    }}
+    h1 {{ font-size: 1.35rem; font-weight: 800; margin-bottom: 4px; }}
+    .meta {{ color: #94a3b8; font-size: 0.78rem; margin-bottom: 24px; }}
+    .board {{
+      width: 100%;
+      max-width: 1120px;
+      overflow-x: auto;
+      background: #101827;
+      border: 1px solid #334155;
+      border-radius: 6px;
+    }}
+    table {{
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 980px;
+    }}
+    thead {{ background: #172033; }}
+    th {{
+      padding: 10px 14px;
+      text-align: center;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #cbd5e1;
+      font-weight: 600;
+    }}
+    th.pname-head {{ text-align: left; }}
+    td {{
+      padding: 0;
+      border-top: 1px solid #1f2a44;
+      vertical-align: middle;
+    }}
+    td.rank {{
+      width: 48px; text-align: center;
+      font-size: 0.8rem; color: #94a3b8;
+      padding: 12px 8px;
+    }}
+    td.pname {{
+      padding: 12px 16px;
+      font-size: 0.9rem; font-weight: 600;
+      white-space: nowrap;
+    }}
+    td.total {{
+      text-align: center; padding: 12px 10px;
+      font-size: 1.05rem; font-weight: 800; color: #60a5fa;
+    }}
+    .of {{ color: #94a3b8; font-size: 0.78rem; font-weight: 400; }}
+    td.penalty {{
+      text-align: center; padding: 12px 14px;
+      font-size: 0.85rem; color: #f8fafc;
+    }}
+    td.sc {{
+      width: 72px; text-align: center;
+      padding: 10px 4px;
+    }}
+    td.sc.pass {{ background: #14532d; }}
+    td.sc.fail {{ background: #7f1d1d; }}
+    td.sc.none {{ background: #101827; }}
+    .verdict {{ display: block; font-size: 0.82rem; font-weight: 800; line-height: 1.15; }}
+    .ms {{ display: block; font-size: 0.68rem; color: #dbeafe; margin-top: 3px; }}
+    .dash {{ color: #64748b; }}
+    tr.top3 td.pname {{ color: #facc15; }}
+    tr:hover td {{ background: #1e293b; }}
+    tr:hover td.sc.pass {{ background: #166534; }}
+    tr:hover td.sc.fail {{ background: #991b1b; }}
+    .empty {{ text-align: center; color: #94a3b8; padding: 48px; font-size: 0.9rem; }}
+    .sc-head {{ width: 72px; }}
+  </style>
+</head>
+<body>
+  <h1>HDFS HA 과제 리더보드</h1>
+  <p class="meta">업데이트: {now} &nbsp;·&nbsp; {len(entries)}명 참여 &nbsp;·&nbsp; AC/WA와 성공 시나리오 실행 시간 합산</p>
+  <div class="board">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th class="pname-head">이름</th>
+          {chr(10).join(f'<th class="sc-head">{l}</th>' for l in SCENARIO_LABELS)}
+          <th>통과</th>
+          <th>Penalty</th>
+        </tr>
+      </thead>
+      <tbody>{rows}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>"""
+
+          os.makedirs("docs", exist_ok=True)
+          with open("docs/index.html", "w") as f:
+              f.write(html)
+
+          print(f"생성 완료 ({len(entries)}명)")
+          PYEOF
+
+      - name: GitHub Pages 배포
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html
+          if git diff --cached --quiet; then
+            echo "변경 없음, 배포 건너뜀"
+          else
+            git commit -m "chore: update leaderboard"
+            git push
+          fi

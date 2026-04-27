@@ -1,0 +1,201 @@
+name: hdfs-ha-homework
+
+x-hadoop-service: &hadoop-service
+  build:
+    context: .
+    args:
+      HADOOP_VERSION: ${HADOOP_VERSION:-3.3.6}
+  image: hdfs-ha-homework-hadoop:${HADOOP_VERSION:-3.3.6}
+  networks:
+    - hdfs-ha
+  environment:
+    HADOOP_HEAPSIZE_MAX: ${HADOOP_HEAPSIZE_MAX:-384m}
+  volumes:
+    - ./student/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+    - ./student/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+    - ./student/conf/hadoop-env.sh:/opt/hadoop/etc/hadoop/hadoop-env.sh:ro
+    - ./student/conf/workers:/opt/hadoop/etc/hadoop/workers:ro
+  restart: unless-stopped
+
+services:
+  client:
+    <<: *hadoop-service
+    hostname: hdfs-client
+    command: ["bash"]
+    profiles:
+      - tools
+    restart: "no"
+
+  zk1:
+    image: zookeeper:3.8
+    hostname: zk1
+    networks:
+      - hdfs-ha
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+    volumes:
+      - zk1-data:/data
+      - zk1-datalog:/datalog
+    restart: unless-stopped
+
+  zk2:
+    image: zookeeper:3.8
+    hostname: zk2
+    networks:
+      - hdfs-ha
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+    volumes:
+      - zk2-data:/data
+      - zk2-datalog:/datalog
+    restart: unless-stopped
+
+  zk3:
+    image: zookeeper:3.8
+    hostname: zk3
+    networks:
+      - hdfs-ha
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+    volumes:
+      - zk3-data:/data
+      - zk3-datalog:/datalog
+    restart: unless-stopped
+
+  jn1:
+    <<: *hadoop-service
+    hostname: jn1
+    command: ["journalnode"]
+    volumes:
+      - ./student/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./student/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./student/conf/hadoop-env.sh:/opt/hadoop/etc/hadoop/hadoop-env.sh:ro
+      - ./student/conf/workers:/opt/hadoop/etc/hadoop/workers:ro
+      - jn1-edits:/hadoop/journal
+
+  jn2:
+    <<: *hadoop-service
+    hostname: jn2
+    command: ["journalnode"]
+    volumes:
+      - ./student/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./student/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./student/conf/hadoop-env.sh:/opt/hadoop/etc/hadoop/hadoop-env.sh:ro
+      - ./student/conf/workers:/opt/hadoop/etc/hadoop/workers:ro
+      - jn2-edits:/hadoop/journal
+
+  jn3:
+    <<: *hadoop-service
+    hostname: jn3
+    command: ["journalnode"]
+    volumes:
+      - ./student/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./student/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./student/conf/hadoop-env.sh:/opt/hadoop/etc/hadoop/hadoop-env.sh:ro
+      - ./student/conf/workers:/opt/hadoop/etc/hadoop/workers:ro
+      - jn3-edits:/hadoop/journal
+
+  nn1:
+    <<: *hadoop-service
+    hostname: nn1
+    command: ["namenode"]
+    ports:
+      - "9870:9870"
+    volumes:
+      - ./student/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./student/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./student/conf/hadoop-env.sh:/opt/hadoop/etc/hadoop/hadoop-env.sh:ro
+      - ./student/conf/workers:/opt/hadoop/etc/hadoop/workers:ro
+      - nn1-name:/hadoop/dfs/name
+    depends_on:
+      - zk1
+      - zk2
+      - zk3
+      - jn1
+      - jn2
+      - jn3
+
+  nn2:
+    <<: *hadoop-service
+    hostname: nn2
+    command: ["namenode"]
+    ports:
+      - "9871:9870"
+    volumes:
+      - ./student/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./student/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./student/conf/hadoop-env.sh:/opt/hadoop/etc/hadoop/hadoop-env.sh:ro
+      - ./student/conf/workers:/opt/hadoop/etc/hadoop/workers:ro
+      - nn2-name:/hadoop/dfs/name
+    depends_on:
+      - zk1
+      - zk2
+      - zk3
+      - jn1
+      - jn2
+      - jn3
+
+  dn1:
+    <<: *hadoop-service
+    hostname: dn1
+    command: ["datanode"]
+    volumes:
+      - ./student/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./student/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./student/conf/hadoop-env.sh:/opt/hadoop/etc/hadoop/hadoop-env.sh:ro
+      - ./student/conf/workers:/opt/hadoop/etc/hadoop/workers:ro
+      - dn1-data:/hadoop/dfs/data
+    depends_on:
+      - nn1
+      - nn2
+
+  dn2:
+    <<: *hadoop-service
+    hostname: dn2
+    command: ["datanode"]
+    volumes:
+      - ./student/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./student/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./student/conf/hadoop-env.sh:/opt/hadoop/etc/hadoop/hadoop-env.sh:ro
+      - ./student/conf/workers:/opt/hadoop/etc/hadoop/workers:ro
+      - dn2-data:/hadoop/dfs/data
+    depends_on:
+      - nn1
+      - nn2
+
+  dn3:
+    <<: *hadoop-service
+    hostname: dn3
+    command: ["datanode"]
+    volumes:
+      - ./student/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./student/conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./student/conf/hadoop-env.sh:/opt/hadoop/etc/hadoop/hadoop-env.sh:ro
+      - ./student/conf/workers:/opt/hadoop/etc/hadoop/workers:ro
+      - dn3-data:/hadoop/dfs/data
+    depends_on:
+      - nn1
+      - nn2
+
+networks:
+  hdfs-ha:
+    driver: bridge
+
+volumes:
+  zk1-data:
+  zk1-datalog:
+  zk2-data:
+  zk2-datalog:
+  zk3-data:
+  zk3-datalog:
+  jn1-edits:
+  jn2-edits:
+  jn3-edits:
+  nn1-name:
+  nn2-name:
+  dn1-data:
+  dn2-data:
+  dn3-data:

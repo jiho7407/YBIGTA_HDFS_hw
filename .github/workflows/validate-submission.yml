@@ -1,0 +1,85 @@
+name: Validate Submission
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "submissions/**"
+
+jobs:
+  validate:
+    name: 제출물 검증
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 변경된 제출자 폴더 찾기
+        id: find-name
+        run: |
+          NAME=$(git diff --name-only origin/main HEAD \
+            | grep '^submissions/' \
+            | awk -F/ '{print $2}' \
+            | sort -u)
+
+          COUNT=$(echo "${NAME}" | grep -c '\S' || true)
+          if [[ "${COUNT}" -ne 1 ]]; then
+            echo "❌ 하나의 폴더만 변경해야 합니다. 감지된 폴더: ${NAME}"
+            exit 1
+          fi
+
+          echo "name=${NAME}" >> "${GITHUB_OUTPUT}"
+          echo "✅ 제출자: ${NAME}"
+
+      - name: result.json 존재 확인
+        run: |
+          NAME="${{ steps.find-name.outputs.name }}"
+          if [[ ! -f "submissions/${NAME}/result.json" ]]; then
+            echo "❌ submissions/${NAME}/result.json 이 없습니다."
+            exit 1
+          fi
+          echo "✅ result.json 확인"
+
+      - name: result.json 스키마 및 통과 기준 검증
+        run: |
+          NAME="${{ steps.find-name.outputs.name }}"
+          python3 - <<EOF
+          import json, sys
+
+          with open("submissions/${NAME}/result.json") as f:
+              try:
+                  data = json.load(f)
+              except json.JSONDecodeError as e:
+                  print(f"❌ 유효한 JSON이 아닙니다: {e}")
+                  sys.exit(1)
+
+          for key in ["schema_version", "timestamp", "git_commit",
+                      "student_conf_sha256", "summary", "scenarios"]:
+              if key not in data:
+                  print(f"❌ 누락된 필드: {key}")
+                  sys.exit(1)
+
+          s = data["summary"]
+          for key in ["scenarios_total", "scenarios_passed",
+                      "penalty_ms", "false_positive_failover_count"]:
+              if key not in s:
+                  print(f"❌ summary 누락된 필드: {key}")
+                  sys.exit(1)
+
+          passed = s["scenarios_passed"]
+          total  = s["scenarios_total"]
+          penalty = s["penalty_ms"]
+          fp     = s["false_positive_failover_count"]
+
+          print(f"시나리오 통과: {passed}/{total}")
+          print(f"penalty_ms:   {penalty:,}")
+          print(f"false_positive: {fp}")
+
+          if passed < 6:
+              print(f"❌ 통과 기준 미달: {passed}/{total} (최소 6개 필요)")
+              sys.exit(1)
+
+          print("✅ 통과")
+          EOF

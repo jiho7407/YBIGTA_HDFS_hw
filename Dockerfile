@@ -1,0 +1,34 @@
+ARG HADOOP_VERSION=3.3.6
+
+FROM eclipse-temurin:11-jre
+
+ARG HADOOP_VERSION
+
+ENV HADOOP_VERSION="${HADOOP_VERSION}" \
+    HADOOP_HOME="/opt/hadoop" \
+    HADOOP_CONF_DIR="/opt/hadoop/etc/hadoop" \
+    PATH="/opt/hadoop/bin:/opt/hadoop/sbin:${PATH}"
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends bash coreutils procps netcat-openbsd curl wget; \
+    rm -rf /var/lib/apt/lists/*; \
+    wget -q "https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz" \
+         -O /tmp/hadoop.tar.gz; \
+    mkdir -p /opt; \
+    tar -xzf /tmp/hadoop.tar.gz -C /opt; \
+    mv /opt/hadoop-${HADOOP_VERSION} /opt/hadoop; \
+    rm /tmp/hadoop.tar.gz; \
+    mkdir -p /hadoop/dfs/name /hadoop/dfs/data /hadoop/journal /opt/hadoop/logs; \
+    useradd --create-home --shell /bin/bash hadoop; \
+    chown -R hadoop:hadoop /hadoop /opt/hadoop
+
+COPY docker/entrypoint.sh /usr/local/bin/hadoop-entrypoint
+
+RUN chmod +x /usr/local/bin/hadoop-entrypoint
+
+USER hadoop
+WORKDIR /opt/hadoop
+
+ENTRYPOINT ["hadoop-entrypoint"]
+CMD ["bash"]

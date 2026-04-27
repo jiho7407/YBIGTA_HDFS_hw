@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+
+  <!-- ============================================================
+       기본 네임서비스 설정 — 건드리지 마세요
+       ============================================================ -->
+  <property>
+    <name>dfs.nameservices</name>
+    <value>hacluster</value>
+  </property>
+
+  <property>
+    <name>dfs.ha.namenodes.hacluster</name>
+    <value>nn1,nn2</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.rpc-address.hacluster.nn1</name>
+    <value>nn1:8020</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.rpc-address.hacluster.nn2</name>
+    <value>nn2:8020</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.http-address.hacluster.nn1</name>
+    <value>nn1:9870</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.http-address.hacluster.nn2</name>
+    <value>nn2:9870</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>file:///hadoop/dfs/name</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>file:///hadoop/dfs/data</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.shared.edits.dir</name>
+    <value>qjournal://jn1:8485;jn2:8485;jn3:8485/hacluster</value>
+  </property>
+
+  <property>
+    <name>dfs.journalnode.edits.dir</name>
+    <value>/hadoop/journal</value>
+  </property>
+
+  <property>
+    <name>dfs.client.failover.proxy.provider.hacluster</name>
+    <value>org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider</value>
+  </property>
+
+  <!-- 이 과제에서 fencing은 shell(/bin/true)로 단순화되어 있습니다.
+       실제 프로덕션 클러스터에서는 STONITH 등 실제 fencing이 필요합니다. -->
+  <property>
+    <name>dfs.ha.fencing.methods</name>
+    <value>shell(/bin/true)</value>
+  </property>
+
+  <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.datanode.registration.ip-hostname-check</name>
+    <value>false</value>
+  </property>
+
+  <!-- ============================================================
+       TODO: 자동 Failover 활성화
+       ZooKeeper 기반 자동 failover를 켜려면 아래 속성을 추가하세요.
+       키 이름: dfs.ha.automatic-failover.enabled
+       힌트: https://hadoop.apache.org/docs/r3.3.6/hadoop-project-dist/hadoop-hdfs/HDFSHighAvailabilityWithQJM.html
+       ============================================================ -->
+
+  <!-- ============================================================
+       TODO: Standby NameNode edit log 동기화 주기 튜닝
+       Standby NN이 Active의 edit log를 얼마나 자주 따라잡을지 결정합니다.
+       기본값(60s)이면 failover 후 데이터 동기화가 느려 시나리오 통과가 어렵습니다.
+       관련 키:
+         - dfs.ha.tail-edits.in-progress  (in-progress segment도 읽을지 여부)
+         - dfs.ha.tail-edits.period       (동기화 주기, 예: 1s)
+       ============================================================ -->
+
+  <!-- ============================================================
+       TODO: Failover / 재시도 타임아웃 튜닝 (선택, 고급)
+       아래 키들을 조정하면 recovery_time_ms를 줄일 수 있습니다.
+       다만 너무 줄이면 false positive failover가 발생합니다.
+         - ha.zookeeper.session-timeout.ms
+         - dfs.client.failover.sleep.base.millis
+         - dfs.client.failover.sleep.max.millis
+         - dfs.client.failover.max.attempts
+         - ipc.client.connect.max.retries
+       ============================================================ -->
+
+</configuration>
