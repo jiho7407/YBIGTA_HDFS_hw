@@ -16,13 +16,10 @@
 
 ## hdfs-site.xml 튜닝 항목
 
-`hdfs-site.xml`의 `TODO` 블록에 아래 속성들을 추가해야 합니다.
+`hdfs-site.xml`의 `TODO` 블록에 아래 속성들을 추가하거나 조정해야 합니다.
 
-### 자동 Failover
-
-| 속성 | 설명 |
-|---|---|
-| `dfs.ha.automatic-failover.enabled` | ZKFC가 ZooKeeper를 감시해 Active NN 장애 시 자동 승격 |
+자동 Failover 설정인 `dfs.ha.automatic-failover.enabled=true`는 클러스터 초기화가 가능하도록
+기본 템플릿에 이미 들어 있습니다. 해당 값은 삭제하지 마세요.
 
 ### Standby 동기화
 
