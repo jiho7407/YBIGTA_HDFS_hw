@@ -40,6 +40,13 @@ def require_int(mapping: dict[str, Any], key: str) -> int:
     return value
 
 
+def as_int_field(mapping: dict[str, Any], key: str) -> int:
+    value = mapping.get(key)
+    if isinstance(value, bool) or not isinstance(value, int):
+        return 0
+    return value
+
+
 def hash_conf_dir(conf_dir: Path) -> str:
     """Path-independent hash of a conf directory.
 
@@ -130,7 +137,25 @@ def main() -> None:
             f"  conf dir:    {actual_hash}"
         )
 
+    # C1: penalty_ms must equal the sum of elapsed_ms across passed scenarios.
+    # run_all.sh computes summary.penalty_ms this exact way, so a tampered
+    # summary won't match a tampered (or honest) scenario list.
+    elapsed_sum = 0
+    for sc in scenarios:
+        if not isinstance(sc, dict):
+            continue
+        if sc.get("passed") is True:
+            elapsed_sum += as_int_field(sc, "elapsed_ms")
+
+    if elapsed_sum != penalty:
+        fail(
+            f"penalty_ms inconsistent with scenario elapsed times.\n"
+            f"  summary.penalty_ms:                  {penalty}\n"
+            f"  sum(elapsed_ms for passed scenarios): {elapsed_sum}"
+        )
+
     print(f"student_conf_sha256: {expected_hash} (matches submissions/{name}/conf)")
+    print(f"penalty_ms consistent with scenario elapsed times ({elapsed_sum})")
     print("submission result is valid")
 
 
