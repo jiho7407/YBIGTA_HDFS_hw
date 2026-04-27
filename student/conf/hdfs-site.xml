@@ -78,11 +78,12 @@
   </property>
 
   <!-- ============================================================
-       TODO: 자동 Failover 활성화
-       ZooKeeper 기반 자동 failover를 켜려면 아래 속성을 추가하세요.
-       키 이름: dfs.ha.automatic-failover.enabled
-       힌트: https://hadoop.apache.org/docs/r3.3.6/hadoop-project-dist/hadoop-hdfs/HDFSHighAvailabilityWithQJM.html
+       자동 Failover 활성화 — 건드리지 마세요
        ============================================================ -->
+  <property>
+    <name>dfs.ha.automatic-failover.enabled</name>
+    <value>true</value>
+  </property>
 
   <!-- ============================================================
        TODO: Standby NameNode edit log 동기화 주기 튜닝
