@@ -59,13 +59,13 @@ results/result.json
 
 `student/` 안의 설정을 수정하여 HDFS HA 클러스터가 장애 상황을 견디도록 만드세요.
 
-| 파일 | 설명 |
-|---|---|
-| `student/conf/hdfs-site.xml` | 주요 HA / failover / replication 튜닝 대상 |
-| `student/conf/core-site.xml` | HDFS 기본 경로와 클라이언트 설정 |
-| `student/conf/hadoop-env.sh` | Hadoop 데몬 환경 설정 |
-| `student/conf/workers` | DataNode worker 목록 |
-| `student/docker-compose.student.yml` | 서비스별 리소스와 환경 변수 조정 |
+| 파일                                 | 설명                                       |
+| ------------------------------------ | ------------------------------------------ |
+| `student/conf/hdfs-site.xml`         | 주요 HA / failover / replication 튜닝 대상 |
+| `student/conf/core-site.xml`         | HDFS 기본 경로와 클라이언트 설정           |
+| `student/conf/hadoop-env.sh`         | Hadoop 데몬 환경 설정                      |
+| `student/conf/workers`               | DataNode worker 목록                       |
+| `student/docker-compose.student.yml` | 서비스별 리소스와 환경 변수 조정           |
 
 서비스 이름(`nn1`, `nn2`, `zk1~3`, `jn1~3`, `dn1~3`)은 바꾸지 마세요. 검증 시나리오가 이 이름을 기준으로 동작합니다.
 
@@ -73,17 +73,17 @@ results/result.json
 
 ## 검증 시나리오
 
-| # | 시나리오 |
-|---|---|
-| 1 | Active NameNode clean kill |
-| 2 | Active NameNode hard kill |
-| 3 | Standby NameNode 장애 |
-| 4 | JournalNode 1대 장애 |
-| 5 | ZooKeeper 1대 장애 |
-| 6 | Active NN ↔ ZooKeeper 단절 |
-| 7 | DataNode 1대 장애 중 write |
-| 8 | failover 중 대용량 write/read |
-| 9 | 반복 chaos test |
+| #   | 시나리오                      |
+| --- | ----------------------------- |
+| 1   | Active NameNode clean kill    |
+| 2   | Active NameNode hard kill     |
+| 3   | Standby NameNode 장애         |
+| 4   | JournalNode 1대 장애          |
+| 5   | ZooKeeper 1대 장애            |
+| 6   | Active NN ↔ ZooKeeper 단절    |
+| 7   | DataNode 1대 장애 중 write    |
+| 8   | failover 중 대용량 write/read |
+| 9   | 반복 chaos test               |
 
 ---
 
@@ -117,13 +117,12 @@ hdfs-ha-hw/
 ./run_all.sh
 ```
 
-| 항목 | 기준 |
-|---|---|
+| 항목          | 기준                 |
+| ------------- | -------------------- |
 | 시나리오 통과 | 9개 중 6개 이상 통과 |
 | 데이터 정합성 | write/read hash 일치 |
-| HA 상태 | Active NameNode 정확히 1개 |
-| HDFS 상태 | corrupt block 없음 |
-| edit log | 두 NameNode의 txid 일치 |
+
+9개 시나리오중 6개 이상 통과하면 PASS, 그 이상은 리더보드 순위용입니다.
 
 ---
 
@@ -135,6 +134,9 @@ hdfs-ha-hw/
 
 - 1순위: `scenarios_passed` 많을수록
 - 2순위: `penalty_ms` 적을수록 (성공한 시나리오들의 실행 시간 합)
+
+순위는 다음 링크에서 확인할 수 있습니다.
+https://jiho7407.github.io/YBIGTA_HDFS_hw/
 
 ---
 
