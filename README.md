@@ -149,17 +149,25 @@ git push
 ```
 
 스크립트는 `results/result.json`을 `submissions/<이름>/result.json`으로 복사하고,
-그 제출 파일만 `git add` 합니다.
+`student/conf/` 전체를 `submissions/<이름>/conf/`로 복사한 뒤, 그 제출 파일들만
+`git add` 합니다. CI가 result.json의 `student_conf_sha256`이 `submissions/<이름>/conf/`
+의 해시와 일치하는지 검증합니다.
 
-수동으로 제출한다면 `submissions/<이름>/` 디렉터리를 만들고 `result.json`만 넣은 뒤 PR을 올리세요.
+수동으로 제출한다면 아래 구조로 PR을 올리세요.
 
 ```
 submissions/
 └── 이름/
-    └── result.json    # run_all.sh 실행 후 results/result.json 복사
+    ├── result.json     # run_all.sh 실행 후 results/result.json 복사
+    └── conf/           # 검증 시점의 student/conf 스냅샷
+        ├── core-site.xml
+        ├── hdfs-site.xml
+        ├── hadoop-env.sh
+        └── workers
 ```
 
-PR에는 `submissions/<이름>/result.json`만 포함되어야 합니다. `student/`, `results/`,
-스크립트, 설정 파일이 같이 올라오면 GitHub Actions가 실패합니다.
+PR에는 `submissions/<이름>/result.json` 과 `submissions/<이름>/conf/*` 만 포함되어야
+합니다. `student/`, `results/`, 스크립트, 그 외 파일이 같이 올라오면 GitHub Actions가
+실패합니다.
 
 PR을 올리면 GitHub Actions가 자동으로 검증합니다. CI를 통과해야 merge됩니다. merge되면 리더보드가 자동으로 업데이트됩니다.

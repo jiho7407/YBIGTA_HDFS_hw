@@ -38,3 +38,20 @@ repo_root() {
   source_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
   printf '%s\n' "${source_dir}"
 }
+
+# Path-independent hash of a directory's files. Computes
+# "<basename>:<sha256-of-contents>" per file, sorted by basename, then
+# hashes the concatenation. Result does not depend on the parent path
+# so the same conf can be hashed from student/conf or submissions/<n>/conf.
+student_conf_hash() {
+  local dir
+  dir="$1"
+  (
+    cd "${dir}"
+    find . -type f -not -name '.*' \
+      | sort \
+      | while IFS= read -r f; do
+          printf '%s:%s\n' "$(basename "${f}")" "$(sha256sum < "${f}" | awk '{print $1}')"
+        done
+  ) | sha256sum | awk '{print $1}'
+}

@@ -22,7 +22,7 @@ jobs:
       - name: 제출 변경 범위 확인
         id: find-name
         run: |
-          mapfile -t CHANGED_FILES < <(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+          mapfile -t CHANGED_FILES < <(git -c core.quotepath=off diff --name-only "origin/${{ github.base_ref }}...HEAD")
 
           if [[ "${#CHANGED_FILES[@]}" -eq 0 ]]; then
             echo "변경된 파일이 없습니다."
@@ -31,13 +31,13 @@ jobs:
 
           INVALID_FILES=()
           for path in "${CHANGED_FILES[@]}"; do
-            if [[ ! "${path}" =~ ^submissions/[^/]+/result\.json$ ]]; then
+            if [[ ! "${path}" =~ ^submissions/[^/]+/(result\.json|conf/[^/]+)$ ]]; then
               INVALID_FILES+=("${path}")
             fi
           done
 
           if [[ "${#INVALID_FILES[@]}" -gt 0 ]]; then
-            echo "제출 PR에는 submissions/<이름>/result.json 하나만 포함해야 합니다."
+            echo "제출 PR에는 submissions/<이름>/result.json 과 submissions/<이름>/conf/* 만 포함해야 합니다."
             printf '허용되지 않는 파일: %s\n' "${INVALID_FILES[@]}"
             exit 1
           fi
@@ -58,4 +58,4 @@ jobs:
       - name: result.json 검증
         run: |
           NAME="${{ steps.find-name.outputs.name }}"
-          python3 scripts/validate_submission_result.py "submissions/${NAME}/result.json"
+          python3 scripts/validate_submission_result.py "${NAME}"
