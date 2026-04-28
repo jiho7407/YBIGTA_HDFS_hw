@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <property>
+    <name>dfs.nameservices</name>
+    <value>hacluster</value>
+  </property>
+
+  <property>
+    <name>dfs.ha.namenodes.hacluster</name>
+    <value>nn1,nn2</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.rpc-address.hacluster.nn1</name>
+    <value>nn1:8020</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.rpc-address.hacluster.nn2</name>
+    <value>nn2:8020</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.http-address.hacluster.nn1</name>
+    <value>nn1:9870</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.http-address.hacluster.nn2</name>
+    <value>nn2:9870</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>file:///hadoop/dfs/name</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>file:///hadoop/dfs/data</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.shared.edits.dir</name>
+    <value>qjournal://jn1:8485;jn2:8485;jn3:8485/hacluster</value>
+  </property>
+
+  <property>
+    <name>dfs.journalnode.edits.dir</name>
+    <value>/hadoop/journal</value>
+  </property>
+
+  <property>
+    <name>dfs.client.failover.proxy.provider.hacluster</name>
+    <value>org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider</value>
+  </property>
+
+  <property>
+    <name>dfs.ha.automatic-failover.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>dfs.ha.tail-edits.in-progress</name>
+    <value>true</value>
+    <description>
+      Educational baseline: keep the Standby NameNode close enough to the
+      Active for short scenario validators without waiting for finalized
+      edit-log segments only.
+    </description>
+  </property>
+
+  <property>
+    <name>dfs.ha.tail-edits.period</name>
+    <value>1s</value>
+    <description>
+      Hadoop's default is much longer than this challenge needs. A short
+      period keeps validation practical while still leaving timeout and
+      failover tuning to scenario-specific work.
+    </description>
+  </property>
+
+  <property>
+    <name>dfs.ha.fencing.methods</name>
+    <value>shell(/bin/true)</value>
+    <description>
+      Educational baseline only. Production clusters need real fencing.
+      Later scenarios should expose why a no-op fence is not sufficient for split-brain cases.
+    </description>
+  </property>
+
+  <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.datanode.registration.ip-hostname-check</name>
+    <value>false</value>
+  </property>
+</configuration>
