@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+
+  <!-- ============================================================
+       기본 네임서비스 설정 — 건드리지 마세요
+       ============================================================ -->
+  <property>
+    <name>dfs.nameservices</name>
+    <value>hacluster</value>
+  </property>
+
+  <property>
+    <name>dfs.ha.namenodes.hacluster</name>
+    <value>nn1,nn2</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.rpc-address.hacluster.nn1</name>
+    <value>nn1:8020</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.rpc-address.hacluster.nn2</name>
+    <value>nn2:8020</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.http-address.hacluster.nn1</name>
+    <value>nn1:9870</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.http-address.hacluster.nn2</name>
+    <value>nn2:9870</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>file:///hadoop/dfs/name</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>file:///hadoop/dfs/data</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.shared.edits.dir</name>
+    <value>qjournal://jn1:8485;jn2:8485;jn3:8485/hacluster</value>
+  </property>
+
+  <property>
+    <name>dfs.journalnode.edits.dir</name>
+    <value>/hadoop/journal</value>
+  </property>
+
+  <property>
+    <name>dfs.client.failover.proxy.provider.hacluster</name>
+    <value>org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider</value>
+  </property>
+
+  <!-- 이 과제에서 fencing은 shell(/bin/true)로 단순화되어 있습니다.
+       실제 프로덕션 클러스터에서는 STONITH 등 실제 fencing이 필요합니다. -->
+  <property>
+    <name>dfs.ha.fencing.methods</name>
+    <value>shell(/bin/true)</value>
+  </property>
+
+  <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.datanode.registration.ip-hostname-check</name>
+    <value>false</value>
+  </property>
+
+  <!-- ============================================================
+       자동 Failover 활성화 — 건드리지 마세요
+       ============================================================ -->
+  <property>
+    <name>dfs.ha.automatic-failover.enabled</name>
+    <value>true</value>
+  </property>
+
+  <!-- Standby NN이 Active의 edit log를 빠르게 따라잡도록 설정 -->
+  <property>
+    <name>dfs.ha.tail-edits.in-progress</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>dfs.ha.tail-edits.period</name>
+    <value>1s</value>
+  </property>
+
+  <!-- Active NN의 edit log roll 주기 단축 -->
+  <property>
+    <name>dfs.ha.log-roll.period</name>
+    <value>30</value>
+  </property>
+
+  <!-- ZKFC 헬스체크 / failover 타이밍 -->
+  <property>
+    <name>ha.zookeeper.session-timeout.ms</name>
+    <value>5000</value>
+  </property>
+
+  <property>
+    <name>ha.health-monitor.rpc-timeout.ms</name>
+    <value>3000</value>
+  </property>
+
+  <property>
+    <name>ha.health-monitor.check-interval.ms</name>
+    <value>1000</value>
+  </property>
+
+  <!-- Client failover: 실패 attempt를 빠르게 끝내고 더 자주 재시도 -->
+  <property>
+    <name>dfs.client.failover.sleep.base.millis</name>
+    <value>500</value>
+  </property>
+
+  <property>
+    <name>dfs.client.failover.sleep.max.millis</name>
+    <value>2000</value>
+  </property>
+
+  <property>
+    <name>dfs.client.failover.max.attempts</name>
+    <value>30</value>
+  </property>
+
+  <property>
+    <name>dfs.client.failover.connection.retries</name>
+    <value>3</value>
+  </property>
+
+  <property>
+    <name>dfs.client.failover.connection.retries.on.timeouts</name>
+    <value>3</value>
+  </property>
+
+  <!-- IPC 연결 재시도: 죽은 NN에 매달리지 않게 -->
+  <property>
+    <name>ipc.client.connect.max.retries</name>
+    <value>3</value>
+  </property>
+
+  <property>
+    <name>ipc.client.connect.max.retries.on.timeouts</name>
+    <value>3</value>
+  </property>
+
+  <property>
+    <name>ipc.client.connect.timeout</name>
+    <value>3000</value>
+  </property>
+
+  <!-- DataNode dead 감지 빠르게 (default 5min → 30s) -->
+  <property>
+    <name>dfs.namenode.heartbeat.recheck-interval</name>
+    <value>30000</value>
+  </property>
+
+  <property>
+    <name>dfs.heartbeat.interval</name>
+    <value>2</value>
+  </property>
+
+  <!-- DN 1대 죽어도 write 계속하도록 -->
+  <property>
+    <name>dfs.client.block.write.replace-datanode-on-failure.enable</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>dfs.client.block.write.replace-datanode-on-failure.policy</name>
+    <value>NEVER</value>
+  </property>
+
+  <property>
+    <name>dfs.client.block.write.replace-datanode-on-failure.best-effort</name>
+    <value>true</value>
+  </property>
+
+  <!-- QJM (JournalNode) write 타임아웃 단축 -->
+  <property>
+    <name>dfs.qjournal.write-txns.timeout.ms</name>
+    <value>20000</value>
+  </property>
+
+  <property>
+    <name>dfs.qjournal.start-segment.timeout.ms</name>
+    <value>20000</value>
+  </property>
+
+  <property>
+    <name>dfs.qjournal.select-input-streams.timeout.ms</name>
+    <value>20000</value>
+  </property>
+
+</configuration>
